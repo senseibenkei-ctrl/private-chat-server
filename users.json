@@ -1,0 +1,16 @@
+[
+  {
+    "username": "Benek",
+    "password": "$2b$10$qz97dlSOGCP4r6P5.TyrOOlD8Yv6jaXV12gcxlNXtOugXEO60bVu2",
+    "contacts": [
+      "Lana"
+    ]
+  },
+  {
+    "username": "Lana",
+    "password": "$2b$10$H0f3GEKV.GFagXZmz1v.NuY0dZdaCfEtUqscwzW0/c5rZKFAuKBwG",
+    "contacts": [
+      "Benek"
+    ]
+  }
+]
