@@ -121,6 +121,23 @@ app.post('/add-contact', (req, res) => {
   });
 });
 
+// 🔥 GET CONTACTS
+app.get('/contacts/:username', (req, res) => {
+  const { username } = req.params;
+
+  const users = JSON.parse(fs.readFileSync('users.json'));
+
+  const user = users.find(u => u.username === username);
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  res.json({
+    contacts: user.contacts || []
+  });
+});
+
 // 🔥 USUWANIE KONTAKTU
 app.post('/remove-contact', (req, res) => {
   const { username, contact } = req.body;
@@ -305,6 +322,23 @@ ws.on("close", () => {
     delete clients[ws.username];
     onlineUsers.delete(ws.username);
   }
+});
+
+// 🔥 GET CONTACTS
+app.get('/contacts/:username', (req, res) => {
+  const { username } = req.params;
+
+  const users = JSON.parse(fs.readFileSync('users.json'));
+
+  const user = users.find(u => u.username === username);
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  res.json({
+    contacts: user.contacts || []
+  });
 });
 
 });
