@@ -181,7 +181,12 @@ const onlineUsers = new Set();
 wss.on('connection', (ws) => {
 
   ws.on("message", (msg) => {
-    const data = JSON.parse(msg);
+let data;
+try {
+  data = JSON.parse(msg);
+} catch {
+  return;
+}    
 
     // 🔑 PUBLIC KEY (FIXED)
 if (data.type === "publicKey") {
@@ -242,16 +247,21 @@ if (data.type === "publicKey") {
     // 💬 MESSAGE
     if (data.text && (data.to || data.groupId)) {
 
-      const msgToSend = {
-        from: data.from,
-        to: data.to || null,
-        groupId: data.groupId || null,
-        text: data.text,
-        nonce: data.nonce,
-        ephKey: data.ephKey,
-      };
+const msgToSend = {
+  from: data.from,
+  to: data.to || null,
+  groupId: data.groupId || null,
+  text: data.text,
+  nonce: data.nonce,
+  ephKey: data.ephKey,
+  plain: data.plain || null,
+};
 
-      messages.push(msgToSend);
+messages.push({
+  ...msgToSend,
+  text: data.plain || msgToSend.text
+});
+
       fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
 
       // ===== GROUP =====
@@ -273,8 +283,14 @@ if (data.type === "publicKey") {
       const recipient = clients[data.to];
       const sender = clients[data.from];
 
+// 📩 DO ODBIORCY
 if (recipient && recipient.readyState === 1) {
   recipient.send(JSON.stringify(msgToSend));
+}
+
+// 📩 DO NADAWCY (SYNC)
+if (sender && sender.readyState === 1) {
+  sender.send(JSON.stringify(msgToSend));
 }
 
       return;
