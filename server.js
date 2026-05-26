@@ -196,14 +196,20 @@ const groups = {};
 const onlineUsers = new Set();
 
 wss.on('connection', (ws) => {
+  console.log("🟢 NOWE POŁĄCZENIE");  
 
-  ws.on("message", (msg) => {
-let data;
-try {
-  data = JSON.parse(msg);
-} catch {
-  return;
-}    
+ws.on("message", (msg) => {
+  let data;
+  try {
+    data = JSON.parse(msg);
+  } catch {
+    return;
+  }
+
+  if (ws.username && data.from && ws.username !== data.from) {
+    console.log("🚫 SPOOF ATTEMPT:", data.from);
+    return;
+  }   
 
     // 🔑 PUBLIC KEY (FIXED)
 if (data.type === "publicKey") {
@@ -271,13 +277,9 @@ const msgToSend = {
   text: data.text,
   nonce: data.nonce,
   ephKey: data.ephKey,
-  plain: data.plain || null,
 };
 
-messages.push({
-  ...msgToSend,
-  text: data.plain || msgToSend.text
-});
+messages.push(msgToSend);
 
       fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
 
@@ -323,22 +325,4 @@ ws.on("close", () => {
     onlineUsers.delete(ws.username);
   }
 });
-
-// 🔥 GET CONTACTS
-app.get('/contacts/:username', (req, res) => {
-  const { username } = req.params;
-
-  const users = JSON.parse(fs.readFileSync('users.json'));
-
-  const user = users.find(u => u.username === username);
-
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
-
-  res.json({
-    contacts: user.contacts || []
-  });
-});
-
 });
