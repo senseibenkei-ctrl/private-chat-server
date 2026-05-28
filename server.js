@@ -202,6 +202,9 @@ ws.on("message", (msg) => {
   let data;
   try {
     data = JSON.parse(msg);
+if (data.type === "ping") {
+  return;
+}
   } catch {
     return;
   }
@@ -220,6 +223,15 @@ if (data.type === "publicKey") {
   ws.username = data.from;
 
   onlineUsers.add(data.from);
+
+  Object.values(clients).forEach(client => {
+  if (client.readyState === 1) {
+    client.send(JSON.stringify({
+      type: "online",
+      users: [...onlineUsers]
+    }));
+  }
+});
 
   // 🔥 WYŚLIJ WSZYSTKIE KLUCZE DO TEGO USERA
   Object.entries(publicKeys).forEach(([username, key]) => {
@@ -323,6 +335,16 @@ ws.on("close", () => {
 
     delete clients[ws.username];
     onlineUsers.delete(ws.username);
+
+Object.values(clients).forEach(client => {
+  if (client.readyState === 1) {
+    client.send(JSON.stringify({
+      type: "online",
+      users: [...onlineUsers]
+    }));
+  }
+});
+
   }
 });
 });
