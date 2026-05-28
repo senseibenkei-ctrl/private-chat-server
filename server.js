@@ -280,15 +280,37 @@ if (data.type === "publicKey") {
     }
 
     // 💬 MESSAGE
-    if (data.text && (data.to || data.groupId)) {
+if (
+  (
+    data.recipientText ||
+    data.selfText
+  ) &&
+  (
+    data.to ||
+    data.groupId
+  )
+) {
 
 const msgToSend = {
+
   from: data.from,
   to: data.to || null,
+  messageId: data.messageId,
+  status: "sent",
   groupId: data.groupId || null,
-  text: data.text,
-  nonce: data.nonce,
-  ephKey: data.ephKey,
+
+  // 📩 ODBIORCA
+  recipientText: data.recipientText,
+  recipientNonce: data.recipientNonce,
+  recipientEphKey: data.recipientEphKey,
+
+  // 📩 NADAWCA
+  selfText: data.selfText,
+  selfNonce: data.selfNonce,
+  selfEphKey: data.selfEphKey,
+
+  createdAt: Date.now(),
+
 };
 
 messages.push(msgToSend);
@@ -322,6 +344,18 @@ if (recipient && recipient.readyState === 1) {
 // 📩 DO NADAWCY (SYNC)
 if (sender && sender.readyState === 1) {
   sender.send(JSON.stringify(msgToSend));
+}
+
+// ✅ ACK
+if (sender && sender.readyState === 1) {
+
+  sender.send(JSON.stringify({
+    type: "message_ack",
+    messageId:
+    data.messageId ||
+    Date.now().toString(),
+  }));
+
 }
 
       return;
