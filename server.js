@@ -341,16 +341,28 @@ if (recipient && recipient.readyState === 1) {
 
   recipient.send(JSON.stringify(msgToSend));
 
-  // ✅ DOSTARCZONO DO ODBIORCY
-  if (sender && sender.readyState === 1) {
+// ✅ DOSTARCZONO DO ODBIORCY
+if (sender && sender.readyState === 1) {
 
-    sender.send(JSON.stringify({
-      type: "message_delivered",
-      messageId: msgToSend.messageId,
-    }));
+  const storedMsg = messages.find(
+    m => m.messageId === msgToSend.messageId
+  );
 
+  if (storedMsg) {
+    storedMsg.status = "delivered";
+
+    fs.writeFileSync(
+      "messages.json",
+      JSON.stringify(messages, null, 2)
+    );
   }
 
+  sender.send(JSON.stringify({
+    type: "message_delivered",
+    messageId: msgToSend.messageId,
+  }));
+
+}
 }
 
 // 📩 DO NADAWCY (SYNC)
