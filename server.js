@@ -209,6 +209,13 @@ if (data.type === "ping") {
 // 👁 MESSAGE READ
 if (data.type === "message_read") {
 
+  console.log(
+  "👁 MESSAGE_READ",
+  data.from,
+  "->",
+  data.to
+);
+
   messages.forEach(msg => {
 
     if (
