@@ -205,6 +205,41 @@ ws.on("message", (msg) => {
 if (data.type === "ping") {
   return;
 }
+
+// 👁 MESSAGE READ
+if (data.type === "message_read") {
+
+  messages.forEach(msg => {
+
+    if (
+      msg.from === data.to &&
+      msg.to === data.from &&
+      msg.status === "delivered"
+    ) {
+      msg.status = "read";
+    }
+
+  });
+
+  fs.writeFileSync(
+    "messages.json",
+    JSON.stringify(messages, null, 2)
+  );
+
+  const sender = clients[data.to];
+
+  if (sender && sender.readyState === 1) {
+
+    sender.send(JSON.stringify({
+      type: "message_read",
+      from: data.from,
+    }));
+
+  }
+
+  return;
+}
+
   } catch {
     return;
   }
