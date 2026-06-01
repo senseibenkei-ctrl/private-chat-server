@@ -1,13 +1,57 @@
+require('dotenv').config();
+console.log("JWT:", process.env.JWT_SECRET);
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const WebSocket = require('ws');
 const express = require('express');
 const cors = require('cors');
+const { Pool } = require('pg');
+console.log(
+  "📁 CWD:",
+  process.cwd()
+);
+
+console.log(
+  "📁 USERS PATH:",
+  require('path').resolve('users.json')
+);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+pool.connect()
+  .then(async () => {
+
+    console.log("✅ POSTGRES CONNECTED");
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        contacts JSONB DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    console.log("✅ USERS TABLE READY");
+
+  })
+  .catch(err => {
+
+    console.log("❌ POSTGRES ERROR");
+    console.log(err);
+
+  });
 
 app.get("/", (req, res) => {
   res.send("SERVER DZIAŁA");
@@ -22,6 +66,8 @@ try {
 } catch {
   users = [];
 }
+console.log("👤 USERS LOADED:");
+console.log(users);
 
 // ===== MESSAGES =====
 let messages = [];
@@ -38,21 +84,38 @@ fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
 // ===== JWT VERIFY =====
 function verifyToken(token) {
   try {
-    return jwt.verify(token, 'SECRET_KEY');
+
+    return jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
   } catch {
+
     return null;
+
   }
 }
-
 // ===== REGISTER =====
 app.post('/register', async (req, res) => {
+  console.log("🔥 REGISTER HIT");
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Brak danych' });
   }
 
-  const existingUser = users.find(u => u.username === username);
+const existingUser = await pool.query(
+  `SELECT * FROM users
+   WHERE username = $1`,
+  [username]
+);
+
+if (existingUser.rows.length > 0) {
+  return res.status(400).json({
+    error: 'Username zajęty'
+  });
+}
 
   if (existingUser) {
     return res.status(400).json({ error: 'Username zajęty' });
@@ -60,9 +123,38 @@ app.post('/register', async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  users.push({ username, password: hashedPassword, contacts: [] });
+await pool.query(
+  `
+  INSERT INTO users
+  (
+    username,
+    password_hash,
+    contacts
+  )
+  VALUES
+  (
+    $1,
+    $2,
+    $3
+  )
+  `,
+  [
+    username,
+    hashedPassword,
+    JSON.stringify([])
+  ]
+);
 
-  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
+console.log(
+  "🔥 FILE CONTENT:"
+);
+
+console.log(
+  fs.readFileSync(
+    'users.json',
+    'utf8'
+  )
+);
 
   res.json({ message: 'Użytkownik utworzony' });
 });
@@ -83,7 +175,12 @@ app.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Błędne dane' });
   }
 
-  const token = jwt.sign({ username }, 'SECRET_KEY', { expiresIn: '7d' });
+  const token = 
+jwt.sign(
+  { username },
+  process.env.JWT_SECRET,
+  { expiresIn: '7d' }
+);
 
   res.json({
     token,
