@@ -161,31 +161,48 @@ console.log(
 
 // ===== LOGIN =====
 app.post('/login', async (req, res) => {
+
   const { username, password } = req.body;
 
-  const user = users.find(u => u.username === username);
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM users
+    WHERE username = $1
+    `,
+    [username]
+  );
 
-  if (!user) {
-    return res.status(400).json({ error: 'Błędne dane' });
+  if (result.rows.length === 0) {
+    return res.status(400).json({
+      error: 'Błędne dane'
+    });
   }
 
-  const valid = await bcrypt.compare(password, user.password);
+  const user = result.rows[0];
+
+  const valid = await bcrypt.compare(
+    password,
+    user.password_hash
+  );
 
   if (!valid) {
-    return res.status(400).json({ error: 'Błędne dane' });
+    return res.status(400).json({
+      error: 'Błędne dane'
+    });
   }
 
-  const token = 
-jwt.sign(
-  { username },
-  process.env.JWT_SECRET,
-  { expiresIn: '7d' }
-);
+  const token = jwt.sign(
+    { username },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
 
   res.json({
     token,
     contacts: user.contacts || []
   });
+
 });
 
 // ===== ADD CONTACT =====
