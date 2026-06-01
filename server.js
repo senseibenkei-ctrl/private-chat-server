@@ -45,6 +45,13 @@ pool.connect()
 
     console.log("✅ USERS TABLE READY");
 
+const usersInDb = await pool.query(
+  'SELECT username FROM users'
+);
+
+console.log("👥 USERS IN DATABASE:");
+console.log(usersInDb.rows);
+
   })
   .catch(err => {
 
