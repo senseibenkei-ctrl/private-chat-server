@@ -118,15 +118,11 @@ const existingUser = await pool.query(
   [username]
 );
 
-if (existingUser.rows.length > 0) {
+    if (existingUser.rows.length > 0) {
   return res.status(400).json({
     error: 'Username zajęty'
   });
 }
-
-  if (existingUser) {
-    return res.status(400).json({ error: 'Username zajęty' });
-  }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -150,6 +146,20 @@ await pool.query(
     hashedPassword,
     JSON.stringify([])
   ]
+);
+
+const check = await pool.query(
+  'SELECT username FROM users'
+);
+
+console.log(
+  '👥 USERS AFTER INSERT:'
+);
+
+console.log(check.rows);
+
+console.log(
+  "🔥 FILE CONTENT:"
 );
 
 console.log(
