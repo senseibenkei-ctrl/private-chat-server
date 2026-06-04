@@ -45,6 +45,17 @@ pool.connect()
 
     console.log("✅ USERS TABLE READY");
 
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS contacts (
+    id SERIAL PRIMARY KEY,
+    user_username VARCHAR(100) NOT NULL,
+    contact_username VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+`);
+
+console.log("✅ CONTACTS TABLE READY");
+
 const usersInDb = await pool.query(
   'SELECT username FROM users'
 );
