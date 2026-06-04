@@ -332,20 +332,25 @@ app.post('/add-contact', async (req, res) => {
 });
 
 // 🔥 GET CONTACTS
-app.get('/contacts/:username', (req, res) => {
+app.get('/contacts/:username', async (req, res) => {
+
   const { username } = req.params;
 
-  const users = JSON.parse(fs.readFileSync('users.json'));
-
-  const user = users.find(u => u.username === username);
-
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
+  const contacts = await pool.query(
+    `
+    SELECT contact_username
+    FROM contacts
+    WHERE user_username = $1
+    `,
+    [username]
+  );
 
   res.json({
-    contacts: user.contacts || []
+    contacts: contacts.rows.map(
+      c => c.contact_username
+    )
   });
+
 });
 
 // 🔥 USUWANIE KONTAKTU
