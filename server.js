@@ -234,33 +234,101 @@ app.post('/login', async (req, res) => {
 });
 
 // ===== ADD CONTACT =====
-app.post('/add-contact', (req, res) => {
+app.post('/add-contact', async (req, res) => {
+
   const { username, contact } = req.body;
 
-  console.log("ADD CONTACT:", username, contact);
+  console.log(
+    "ADD CONTACT:",
+    username,
+    contact
+  );
 
-  const user = users.find(u => u.username === username);
-  const target = users.find(u => u.username === contact);
+  const userCheck = await pool.query(
+    `SELECT username
+     FROM users
+     WHERE username = $1`,
+    [username]
+  );
 
-  if (!user || !target) {
-    return res.status(400).json({ error: "Użytkownik nie istnieje" });
+  const contactCheck = await pool.query(
+    `SELECT username
+     FROM users
+     WHERE username = $1`,
+    [contact]
+  );
+
+  if (
+    userCheck.rows.length === 0 ||
+    contactCheck.rows.length === 0
+  ) {
+    return res.status(400).json({
+      error: "Użytkownik nie istnieje"
+    });
   }
 
-  // 🔥 dodaj tylko jeśli nie ma
-  if (!user.contacts.includes(contact)) {
-    user.contacts.push(contact);
+  const alreadyExists = await pool.query(
+    `
+    SELECT *
+    FROM contacts
+    WHERE user_username = $1
+    AND contact_username = $2
+    `,
+    [username, contact]
+  );
+
+  if (alreadyExists.rows.length === 0) {
+
+    await pool.query(
+      `
+      INSERT INTO contacts
+      (
+        user_username,
+        contact_username
+      )
+      VALUES
+      (
+        $1,
+        $2
+      )
+      `,
+      [username, contact]
+    );
+
+    await pool.query(
+      `
+      INSERT INTO contacts
+      (
+        user_username,
+        contact_username
+      )
+      VALUES
+      (
+        $1,
+        $2
+      )
+      `,
+      [contact, username]
+    );
+
   }
 
-  if (!target.contacts.includes(username)) {
-    target.contacts.push(username);
-  }
-
-  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
+  const contacts = await pool.query(
+    `
+    SELECT contact_username
+    FROM contacts
+    WHERE user_username = $1
+    `,
+    [username]
+  );
 
   res.json({
     success: true,
-    contacts: user.contacts,
+    contacts: contacts.rows.map(
+      c => c.contact_username
+    )
   });
+
 });
 
 // 🔥 GET CONTACTS
