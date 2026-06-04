@@ -56,6 +56,33 @@ pool.connect()
 
 console.log("✅ CONTACTS TABLE READY");
 
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id SERIAL PRIMARY KEY,
+
+    message_id VARCHAR(255) UNIQUE,
+
+    sender VARCHAR(100),
+    recipient VARCHAR(100),
+
+    group_id VARCHAR(255),
+
+    status VARCHAR(50),
+
+    recipient_text TEXT,
+    recipient_nonce TEXT,
+    recipient_eph_key TEXT,
+
+    self_text TEXT,
+    self_nonce TEXT,
+    self_eph_key TEXT,
+
+    created_at BIGINT
+  )
+`);
+
+console.log("✅ MESSAGES TABLE READY");
+
 const usersInDb = await pool.query(
   'SELECT username FROM users'
 );
