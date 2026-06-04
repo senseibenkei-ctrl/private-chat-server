@@ -354,33 +354,52 @@ app.get('/contacts/:username', async (req, res) => {
 });
 
 // 🔥 USUWANIE KONTAKTU
-app.post('/remove-contact', (req, res) => {
+app.post('/remove-contact', async (req, res) => {
+
   const { username, contact } = req.body;
-  
-  console.log("REMOVE CONTACT:", username, contact);
-  console.log("USERS:", Object.keys(users));
 
-const user = users.find(u => u.username === username);
-const target = users.find(u => u.username === contact);
+  console.log(
+    "REMOVE CONTACT:",
+    username,
+    contact
+  );
 
-if (!user || !target) {
-  return res.status(400).json({ error: "User nie istnieje" });
-}
+  await pool.query(
+    `
+    DELETE FROM contacts
+    WHERE user_username = $1
+    AND contact_username = $2
+    `,
+    [username, contact]
+  );
 
-// 🔥 usuń kontakt
-user.contacts = user.contacts.filter(c => c !== contact);
+  await pool.query(
+    `
+    DELETE FROM contacts
+    WHERE user_username = $1
+    AND contact_username = $2
+    `,
+    [contact, username]
+  );
 
-// 🔥 usuń w drugą stronę
-target.contacts = target.contacts.filter(c => c !== username);
-
-  // 🔥 ZAPIS DO PLIKU (NAJWAŻNIEJSZE)
-  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
+  const contacts = await pool.query(
+    `
+    SELECT contact_username
+    FROM contacts
+    WHERE user_username = $1
+    `,
+    [username]
+  );
 
   res.json({
     success: true,
-    contacts: user.contacts,
+    contacts: contacts.rows.map(
+      c => c.contact_username
+    )
   });
+
 });
+
 // ===== GET MESSAGES =====
 app.get('/messages/:user/:chat', (req, res) => {
   const { user, chat } = req.params;
