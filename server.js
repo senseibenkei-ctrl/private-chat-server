@@ -459,7 +459,7 @@ const onlineUsers = new Set();
 wss.on('connection', (ws) => {
   console.log("🟢 NOWE POŁĄCZENIE");  
 
-ws.on("message", (msg) => {
+ws.on("message", async (msg) => {
   let data;
   try {
     data = JSON.parse(msg);
