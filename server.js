@@ -428,20 +428,57 @@ app.post('/remove-contact', async (req, res) => {
 });
 
 // ===== GET MESSAGES =====
-app.get('/messages/:user/:chat', (req, res) => {
+app.get('/messages/:user/:chat', async (req, res) => {
+
   const { user, chat } = req.params;
 
-  const allMessages = JSON.parse(fs.readFileSync('messages.json', 'utf-8') || '[]');
-
-  const filtered = allMessages.filter(
-    m =>
-      (m.from === user && m.to === chat) ||
-      (m.from === chat && m.to === user) ||
-      (m.groupId && m.groupId === chat)
+  const result = await pool.query(
+    `
+    SELECT *
+    FROM messages
+    WHERE
+      (
+        sender = $1
+        AND recipient = $2
+      )
+      OR
+      (
+        sender = $2
+        AND recipient = $1
+      )
+      OR
+      (
+        group_id = $2
+      )
+    ORDER BY created_at ASC
+    `,
+    [user, chat]
   );
 
-  res.json(filtered);
+  const messages = result.rows.map(m => ({
+    from: m.sender,
+    to: m.recipient,
+
+    messageId: m.message_id,
+    status: m.status,
+
+    groupId: m.group_id,
+
+    recipientText: m.recipient_text,
+    recipientNonce: m.recipient_nonce,
+    recipientEphKey: m.recipient_eph_key,
+
+    selfText: m.self_text,
+    selfNonce: m.self_nonce,
+    selfEphKey: m.self_eph_key,
+
+    createdAt: m.created_at
+  }));
+
+  res.json(messages);
+
 });
+
 // ===== START SERVER =====
 const PORT = process.env.PORT || 3000;
 
