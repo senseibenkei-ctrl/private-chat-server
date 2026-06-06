@@ -758,6 +758,20 @@ if (sender && sender.readyState === 1) {
     );
   }
 
+  await pool.query(
+  `
+  UPDATE messages
+  SET status = 'delivered'
+  WHERE message_id = $1
+  `,
+  [msgToSend.messageId]
+);
+
+console.log(
+  "📬 DELIVERED:",
+  msgToSend.messageId
+);
+
   sender.send(JSON.stringify({
     type: "message_delivered",
     messageId: msgToSend.messageId,
