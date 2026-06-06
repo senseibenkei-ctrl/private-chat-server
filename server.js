@@ -582,7 +582,7 @@ if (data.type === "publicKey") {
       return;
     }
 
-    // 💬 MESSAGE
+// 💬 MESSAGE
 if (
   (
     data.recipientText ||
@@ -592,7 +592,11 @@ if (
     data.to ||
     data.groupId
   )
-) {
+)
+{
+
+console.log("📨 MESSAGE BLOCK HIT");
+console.log(JSON.stringify(data));
 
 const msgToSend = {
 
@@ -674,6 +678,8 @@ console.log(
   "💾 MESSAGE SAVED TO POSTGRES:",
   msgToSend.messageId
 );
+
+
 
       // ===== GROUP =====
       if (data.groupId) {
