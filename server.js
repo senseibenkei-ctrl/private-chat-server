@@ -531,6 +531,28 @@ if (data.type === "message_read") {
     JSON.stringify(messages, null, 2)
   );
 
+  await pool.query(
+  `
+  UPDATE messages
+  SET status = 'read'
+  WHERE
+    sender = $1
+    AND recipient = $2
+    AND status = 'delivered'
+  `,
+  [
+    data.to,
+    data.from
+  ]
+);
+
+console.log(
+  "👁 READ SAVED TO POSTGRES:",
+  data.to,
+  "->",
+  data.from
+);
+
   const sender = clients[data.to];
 
   if (sender && sender.readyState === 1) {
