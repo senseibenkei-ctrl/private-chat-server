@@ -618,7 +618,62 @@ const msgToSend = {
 
 messages.push(msgToSend);
 
-      fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
+      fs.writeFileSync(
+        'messages.json', 
+        JSON.stringify(messages, null, 2)
+      );
+
+await pool.query(
+  `
+  INSERT INTO messages
+  (
+    message_id,
+    sender,
+    recipient,
+    group_id,
+    status,
+
+    recipient_text,
+    recipient_nonce,
+    recipient_eph_key,
+
+    self_text,
+    self_nonce,
+    self_eph_key,
+
+    created_at
+  )
+  VALUES
+  (
+    $1,$2,$3,$4,$5,
+    $6,$7,$8,
+    $9,$10,$11,
+    $12
+  )
+  `,
+  [
+    msgToSend.messageId,
+    msgToSend.from,
+    msgToSend.to,
+    msgToSend.groupId,
+    msgToSend.status,
+
+    msgToSend.recipientText,
+    msgToSend.recipientNonce,
+    msgToSend.recipientEphKey,
+
+    msgToSend.selfText,
+    msgToSend.selfNonce,
+    msgToSend.selfEphKey,
+
+    msgToSend.createdAt
+  ]
+);
+
+console.log(
+  "💾 MESSAGE SAVED TO POSTGRES:",
+  msgToSend.messageId
+);
 
       // ===== GROUP =====
       if (data.groupId) {
