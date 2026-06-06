@@ -567,9 +567,13 @@ console.log(
   return;
 }
 
-  } catch {
-    return;
-  }
+} catch (err) {
+
+  console.log("❌ WS ERROR");
+  console.log(err);
+
+  return;
+}
 
   if (ws.username && data.from && ws.username !== data.from) {
     console.log("🚫 SPOOF ATTEMPT:", data.from);
