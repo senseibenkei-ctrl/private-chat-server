@@ -33,17 +33,28 @@ pool.connect()
 
     console.log("✅ POSTGRES CONNECTED");
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(100) UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        contacts JSONB DEFAULT '[]',
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+
+    sokol_id VARCHAR(20) UNIQUE,
+
+    username VARCHAR(100) UNIQUE NOT NULL,
+
+    password_hash TEXT NOT NULL,
+
+    contacts JSONB DEFAULT '[]',
+
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+`);
 
     console.log("✅ USERS TABLE READY");
+
+await pool.query(`
+  ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS sokol_id VARCHAR(20)
+`);
 
     await pool.query(`
   CREATE TABLE IF NOT EXISTS contacts (
@@ -143,7 +154,9 @@ function verifyToken(token) {
 }
 // ===== REGISTER =====
 app.post('/register', async (req, res) => {
-  console.log("🔥 REGISTER HIT");
+  console.log(
+  "🔥 REGISTER HIT V2 SOKOL"
+);
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -162,28 +175,45 @@ const existingUser = await pool.query(
   });
 }
 
+const randomPart =
+  Math.random()
+    .toString(36)
+    .substring(2, 8)
+    .toUpperCase();
+
+const sokolId =
+  `SKL-${randomPart}`;
+
+console.log(
+  '🦅 NOWE SOKOL_ID:',
+  sokolId
+);
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
 await pool.query(
   `
-  INSERT INTO users
-  (
-    username,
-    password_hash,
-    contacts
-  )
-  VALUES
-  (
-    $1,
-    $2,
-    $3
-  )
+INSERT INTO users
+(
+  sokol_id,
+  username,
+  password_hash,
+  contacts
+)
+VALUES
+(
+  $1,
+  $2,
+  $3,
+  $4
+)
   `,
-  [
-    username,
-    hashedPassword,
-    JSON.stringify([])
-  ]
+[
+  sokolId,
+  username,
+  hashedPassword,
+  JSON.stringify([])
+]
 );
 
 const check = await pool.query(
@@ -200,18 +230,16 @@ console.log(
   "🔥 FILE CONTENT:"
 );
 
-console.log(
-  "🔥 FILE CONTENT:"
-);
+res.json({
+  message:
+    'Użytkownik utworzony',
 
-console.log(
-  fs.readFileSync(
-    'users.json',
-    'utf8'
-  )
-);
+  sokolId:
+    sokolId,
 
-  res.json({ message: 'Użytkownik utworzony' });
+  test:
+    'SOKOL_OK'
+});
 });
 
 // ===== LOGIN =====
