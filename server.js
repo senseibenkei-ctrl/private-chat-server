@@ -288,37 +288,83 @@ app.post('/login', async (req, res) => {
 
 });
 
+async function fetchContactsForUser(username) {
+  const result = await pool.query(
+    `
+    SELECT
+      c.contact_username AS username,
+      u.sokol_id AS identifier
+    FROM contacts c
+    INNER JOIN users u
+      ON u.username = c.contact_username
+    WHERE c.user_username = $1
+    ORDER BY c.created_at ASC
+    `,
+    [username]
+  );
+
+  return result.rows.map(row => ({
+    identifier: row.identifier,
+    username: row.username,
+  }));
+}
+
 // ===== ADD CONTACT =====
 app.post('/add-contact', async (req, res) => {
 
-  const { username, contact } = req.body;
+  const { username, contactSokolId, contact } = req.body;
+
+  const identifier =
+    contactSokolId ||
+    contact;
 
   console.log(
     "ADD CONTACT:",
     username,
-    contact
+    identifier
   );
 
+  if (!username || !identifier) {
+    return res.status(400).json({
+      error: 'Brak danych'
+    });
+  }
+
   const userCheck = await pool.query(
-    `SELECT username
+    `SELECT username, sokol_id
      FROM users
      WHERE username = $1`,
     [username]
   );
 
+  if (userCheck.rows.length === 0) {
+    return res.status(400).json({
+      error: 'Użytkownik nie istnieje'
+    });
+  }
+
   const contactCheck = await pool.query(
-    `SELECT username
+    `SELECT username, sokol_id
      FROM users
-     WHERE username = $1`,
-    [contact]
+     WHERE sokol_id = $1`,
+    [identifier]
   );
 
+  if (contactCheck.rows.length === 0) {
+    return res.status(400).json({
+      error: 'Nie znaleziono identyfikatora'
+    });
+  }
+
+  const contactUsername =
+    contactCheck.rows[0].username;
+
   if (
-    userCheck.rows.length === 0 ||
-    contactCheck.rows.length === 0
+    userCheck.rows[0].sokol_id === identifier ||
+    username === contactUsername
   ) {
     return res.status(400).json({
-      error: "Użytkownik nie istnieje"
+      error: 'Nie możesz dodać samego siebie'
     });
   }
 
@@ -329,7 +375,7 @@ app.post('/add-contact', async (req, res) => {
     WHERE user_username = $1
     AND contact_username = $2
     `,
-    [username, contact]
+    [username, contactUsername]
   );
 
   if (alreadyExists.rows.length === 0) {
@@ -347,7 +393,7 @@ app.post('/add-contact', async (req, res) => {
         $2
       )
       `,
-      [username, contact]
+      [username, contactUsername]
     );
 
     await pool.query(
@@ -363,25 +409,16 @@ app.post('/add-contact', async (req, res) => {
         $2
       )
       `,
-      [contact, username]
+      [contactUsername, username]
     );
 
   }
 
-  const contacts = await pool.query(
-    `
-    SELECT contact_username
-    FROM contacts
-    WHERE user_username = $1
-    `,
-    [username]
-  );
+  const contacts = await fetchContactsForUser(username);
 
   res.json({
     success: true,
-    contacts: contacts.rows.map(
-      c => c.contact_username
-    )
+    contacts,
   });
 
 });
@@ -391,19 +428,10 @@ app.get('/contacts/:username', async (req, res) => {
 
   const { username } = req.params;
 
-  const contacts = await pool.query(
-    `
-    SELECT contact_username
-    FROM contacts
-    WHERE user_username = $1
-    `,
-    [username]
-  );
+  const contacts = await fetchContactsForUser(username);
 
   res.json({
-    contacts: contacts.rows.map(
-      c => c.contact_username
-    )
+    contacts,
   });
 
 });
@@ -437,20 +465,11 @@ app.post('/remove-contact', async (req, res) => {
     [contact, username]
   );
 
-  const contacts = await pool.query(
-    `
-    SELECT contact_username
-    FROM contacts
-    WHERE user_username = $1
-    `,
-    [username]
-  );
+  const contacts = await fetchContactsForUser(username);
 
   res.json({
     success: true,
-    contacts: contacts.rows.map(
-      c => c.contact_username
-    )
+    contacts,
   });
 
 });
