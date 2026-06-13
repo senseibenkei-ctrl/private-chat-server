@@ -283,6 +283,7 @@ app.post('/login', async (req, res) => {
 
   res.json({
     token,
+    identifier: user.sokol_id,
     contacts: user.contacts || []
   });
 
